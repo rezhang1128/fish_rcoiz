@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { Image, View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../constants/firebaseConfig';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +22,7 @@ const Login = () => {
 
   return (
     <View style={styles.container}>
+      <Image source={require('@/assets/images/login_logo.png')} style={{ alignSelf: 'center' }} />
       <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
