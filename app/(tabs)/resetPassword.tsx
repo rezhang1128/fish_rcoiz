@@ -21,37 +21,26 @@ const ResetPassword = () => {
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleForgotPassword = async () => {
-    if (!email) {
-      setErrorMessage('Please enter your email.');
-      return;
-    }
+    const cleanedEmail = email.trim().toLowerCase();
 
     try {
-      // Check if the email is registered
-      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
-      if (signInMethods.length > 0) {
-        // If email is registered, send the reset email
-        await sendPasswordResetEmail(auth, email);
-        Alert.alert(
-          'Password Reset Email Sent',
-          'Please check your inbox for instructions to reset your password.'
-        );
-        navigation.replace('Login');
-      } else {
-        // If email is not registered, show a specific message
-        setErrorMessage('No account found with this email.');
-      }
+      await sendPasswordResetEmail(auth, cleanedEmail);
+      Alert.alert(
+        'Password Reset Email Sent',
+        'Check your inbox.'
+      );
+      navigation.replace('Login');
     } catch (error: any) {
-      console.error('Forgot Password Error:', error);
+      console.error('Reset error:', error.code);
       switch (error.code) {
-        case 'auth/invalid-email':
-          setErrorMessage('Invalid email format.');
-          break;
         case 'auth/user-not-found':
           setErrorMessage('No account found with this email.');
           break;
+        case 'auth/invalid-email':
+          setErrorMessage('Invalid email format.');
+          break;
         default:
-          setErrorMessage('Failed to send reset email. Please try again.');
+          setErrorMessage('Something went wrong. Try again later.');
       }
     }
   };
