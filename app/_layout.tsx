@@ -7,6 +7,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../constants/firebaseConfig';
 import { checkInactivity, updateLastActive } from '../scripts/inactivityChecker';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { TouchableWithoutFeedback, Keyboard } from 'react-native';
 
 import BottomTabs from './bottomTabs'; // The new tab navigator
 import LoginScreen from './(tabs)/login';
@@ -19,6 +21,43 @@ const Stack = createNativeStackNavigator();
 export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [image, setImage] = useState<string | null>(null);
+  const [showOptions, setShowOptions] = useState(false);
+  const openCamera = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (permissionResult.granted === false) {
+          Alert.alert("Permission required", "Camera access is required to take photos.");
+          return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 1,
+        });
+
+        if (!result.canceled) {
+          setImage(result.assets[0].uri);
+          console.log("Captured Image URI:", result.assets[0].uri);
+        }
+    };
+  const openGallery = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission required", "Access to media library is required.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+      console.log("Selected Image URI:", result.assets[0].uri);
+    }
+    setShowOptions(false);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -64,34 +103,52 @@ export default function RootLayout() {
    console.log('isLoggedIn:', isLoggedIn);
 
   return (
-   <View style={{ flex: 1 }}>
+    <NavigationContainer>
+      <TouchableWithoutFeedback
+        onPress={() => {
+          if (showOptions) setShowOptions(false);
+          Keyboard.dismiss(); // also hides keyboard if open
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            {!isLoggedIn ? (
+              <>
+                <Stack.Screen name="Login" component={LoginScreen} />
+                <Stack.Screen name="Register" component={RegisterScreen} />
+                <Stack.Screen name="ResetPassword" component={ResetPassword} />
+              </>
+            ) : (
+              <Stack.Screen name="Main" component={BottomTabs} />
+            )}
+          </Stack.Navigator>
 
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isLoggedIn ? (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="ResetPassword" component={ResetPassword} />
-          </>
-        ) : (
-          <Stack.Screen name="Main" component={BottomTabs} />
+          {isLoggedIn && (
+            <>
+              <TouchableOpacity
+                style={styles.fab}
+                onPress={() => setShowOptions(true)}
+              >
+                <Ionicons name="camera" size={32} color="#fff" />
+              </TouchableOpacity>
 
-        )}
-      </Stack.Navigator>
-
-      {isLoggedIn && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => {
-            console.log('FAB Pressed');
-          }}
-        >
-            <Ionicons name="camera" size={32} color="#fff" />
-
-        </TouchableOpacity>
-      )}
-    </View>
+              {showOptions && (
+                <View style={styles.popup}>
+                  <TouchableOpacity style={styles.popupButton} onPress={openCamera}>
+                    <Text style={styles.popupText}>Take Photo</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.popupButton} onPress={openGallery}>
+                    <Text style={styles.popupText}>Choose from Album</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </>
+          )}
+        </View>
+      </TouchableWithoutFeedback>
+    </NavigationContainer>
   );
+
 }
 
 const styles = StyleSheet.create({
@@ -117,5 +174,26 @@ const styles = StyleSheet.create({
       shadowOpacity: 0.3,
       shadowRadius: 4,
   },
+  popup: {
+    position: 'absolute',
+    bottom: 140,
+    right: 30,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  popupButton: {
+    paddingVertical: 10,
+  },
+  popupText: {
+    fontSize: 16,
+    color: '#333',
+  }
 
 });
